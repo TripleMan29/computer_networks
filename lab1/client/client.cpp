@@ -10,7 +10,6 @@
 
 #define BUFFER_LENGTH 1024
 
-// std::string message;
 using namespace std;
 char buffer[BUFFER_LENGTH];
 int n;
@@ -42,7 +41,6 @@ void Event(int port) {
         printf("%s\n", buffer);
 
     while (true){
-        // std::getline(std::cin, message);
         cin.getline(buffer, BUFFER_LENGTH, '\n');
         n = write(sock, buffer, BUFFER_LENGTH);
         if (n <= 0) {
