@@ -31,6 +31,26 @@ string list_to_string() {
     return threads_list;
 }
 
+int readn(int fd, char *bp, size_t len){
+    int cnt;
+    int rc;
+
+    cnt = len;
+    while(cnt > 0){
+        rc = recv(fd, bp, cnt, 0);
+        if (rc < 0) {
+            if (errno == EINTR)
+                continue;
+            return -1;
+        }
+        if (rc == 0)
+            return len - cnt;
+        bp += rc;
+        cnt -= rc;
+    }
+    return len;
+}
+
 list<string> split(const string &s, char delimiter) {
     list<string> tokens;
     string token;
@@ -67,7 +87,7 @@ void fun(int new_socket_descriptor) {
         if (!contains_thread(to_str(this_thread::get_id()))) {
             break;
         }
-        bytes_read = read(new_socket_descriptor, buf, 1024);
+        bytes_read = readn(new_socket_descriptor, buf, 1024);
         if (bytes_read <= 0) {
             break;
         }
@@ -142,8 +162,7 @@ int main(int argc, char *argv[]) {
     while (true) {
         new_socket_descriptor = accept(socket_descriptor, nullptr, nullptr);
         if (new_socket_descriptor < 0) {
-            perror("accept");
-            exit(1);
+            break;
         }
 
         thread t1(fun, new_socket_descriptor);
@@ -151,5 +170,8 @@ int main(int argc, char *argv[]) {
         threads.push_back(to_str(t1.get_id()));
         pthread_mutex_unlock(&mutex);
         t1.detach();
+    }
+    for (string thread: threads){
+        pthread_join(atoi(thread.c_str()), NULL);
     }
 }

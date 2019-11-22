@@ -15,6 +15,26 @@ char buffer[BUFFER_LENGTH];
 int n;
 struct hostent *server;
 
+int readn(int fd, char *bp, size_t len){
+    int cnt;
+    int rc;
+
+    cnt = len;
+    while(cnt > 0){
+        rc = recv(fd, bp, cnt, 0);
+        if (rc < 0) {
+            if (errno == EINTR)
+                continue;
+            return -1;
+        }
+        if (rc == 0)
+            return len - cnt;
+        bp += rc;
+        cnt -= rc;
+    }
+    return len;
+}
+
 void Event(int port) {
     int sock;
     struct sockaddr_in addr{};
@@ -32,7 +52,7 @@ void Event(int port) {
         perror("Failed connect to server");
         exit(1);
     }
-        n = read(sock, buffer, BUFFER_LENGTH);
+        n = readn(sock, buffer, BUFFER_LENGTH);
         if (n < 0) {
             perror("Server disconnect");
             close(sock);
@@ -48,7 +68,7 @@ void Event(int port) {
             close(sock);
             exit(0);
         }
-        n = read(sock, buffer, BUFFER_LENGTH);
+        n = readn(sock, buffer, BUFFER_LENGTH);
         if (n <= 0) {
             perror("Server disconnect");
             close(sock);
