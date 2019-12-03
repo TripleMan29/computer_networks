@@ -7,6 +7,7 @@
 #include <thread>
 #include <iostream>
 #include <string.h>
+#include <sstream>
 
 #define BUFFER_LENGTH 1024
 
@@ -14,6 +15,12 @@ using namespace std;
 char buffer[BUFFER_LENGTH];
 int n;
 struct hostent *server;
+
+string to_str(thread::id id) {
+    stringstream ss;
+    ss << id;
+    return ss.str();
+}
 
 int readn(int fd, char *bp, size_t len){
     int cnt;
@@ -62,6 +69,10 @@ void Event(int port) {
 
     while (true){
         cin.getline(buffer, BUFFER_LENGTH, '\n');
+        if (strcmp(buffer, string("/exit").c_str()) == 0){
+            close(sock);
+            exit(0);
+        }
         n = write(sock, buffer, BUFFER_LENGTH);
         if (n <= 0) {
             perror("Server disconnect");

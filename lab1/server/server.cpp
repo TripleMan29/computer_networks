@@ -18,6 +18,7 @@ using namespace std;
 int socket_descriptor;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 list<string> threads;
+list<thread> threads_list;
 
 string list_to_string() {
     struct sockaddr_in sai;
@@ -115,7 +116,6 @@ void kill(const string &id) {
 
 void exit() {
     close(socket_descriptor);
-    exit(0);
 }
 
 void admin_fun(){
@@ -125,6 +125,7 @@ void admin_fun(){
         if (strcmp(buffer, string("list").c_str()) == 0) {
             printf(list_to_string().c_str());
         } else if (strcmp(buffer, string("exit").c_str()) == 0) {
+            break;
             exit();
         } else {
             list<string> listSplit = split(buffer, ' ');
@@ -157,21 +158,22 @@ int main(int argc, char *argv[]) {
     listen(socket_descriptor, 1);
 
     thread t0(admin_fun);
-    t0.detach();
+
 
     while (true) {
         new_socket_descriptor = accept(socket_descriptor, nullptr, nullptr);
         if (new_socket_descriptor < 0) {
             break;
         }
-
-        thread t1(fun, new_socket_descriptor);
         pthread_mutex_lock(&mutex);
-        threads.push_back(to_str(t1.get_id()));
+        threads_list.emplace_back([&] { fun(new_socket_descriptor);});
+        threads.push_back(to_str(threads_list.back().get_id()));
         pthread_mutex_unlock(&mutex);
-        t1.detach();
     }
-    for (string thread: threads){
-        pthread_join(atoi(thread.c_str()), NULL);
+    for (thread &t: threads_list){
+        t.join();
+
     }
+    t0.join();
+    return 0;
 }
