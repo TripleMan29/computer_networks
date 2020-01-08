@@ -19,6 +19,7 @@ int socket_descriptor;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 list<string> threads;
 list<thread> threads_list;
+list<int> descriptors;
 
 string list_to_string() {
     struct sockaddr_in sai;
@@ -98,6 +99,7 @@ void fun(int new_socket_descriptor) {
         write(new_socket_descriptor, buf, 1024);
     }
     close(new_socket_descriptor);
+    descriptors.remove(new_socket_descriptor);
     pthread_mutex_lock(&mutex);
     threads.remove(to_str(this_thread::get_id()));
     pthread_mutex_unlock(&mutex);
@@ -115,7 +117,12 @@ void kill(const string &id) {
 }
 
 void exit() {
+    shutdown(socket_descriptor, 2);
     close(socket_descriptor);
+    for (int &it: descriptors){
+        shutdown(it,2);
+        close(it);
+    }
 }
 
 void admin_fun(){
@@ -125,8 +132,8 @@ void admin_fun(){
         if (strcmp(buffer, string("list").c_str()) == 0) {
             printf(list_to_string().c_str());
         } else if (strcmp(buffer, string("exit").c_str()) == 0) {
-            break;
             exit();
+            break;
         } else {
             list<string> listSplit = split(buffer, ' ');
             if (strcmp(listSplit.front().c_str(), string("kill").c_str()) == 0) {
@@ -168,11 +175,11 @@ int main(int argc, char *argv[]) {
         pthread_mutex_lock(&mutex);
         threads_list.emplace_back([&] { fun(new_socket_descriptor);});
         threads.push_back(to_str(threads_list.back().get_id()));
+        descriptors.push_back(new_socket_descriptor);
         pthread_mutex_unlock(&mutex);
     }
     for (thread &t: threads_list){
         t.join();
-
     }
     t0.join();
     return 0;

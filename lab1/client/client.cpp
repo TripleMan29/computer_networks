@@ -6,7 +6,7 @@
 #include <cstdlib>
 #include <thread>
 #include <iostream>
-#include <string.h>
+#include <cstring>
 #include <sstream>
 
 #define BUFFER_LENGTH 1024
